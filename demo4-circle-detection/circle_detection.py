@@ -1,21 +1,22 @@
 """
 Circle Detection with Image Preprocessing
-Demonstrates a complete image processing pipeline: thresholding, noise removal, and circle detection.
+Demonstrates a complete image processing pipeline: thresholding, noise removal, edge detection, and circle detection.
 """
 
 import cv2
 import numpy as np
 import argparse
 
-def create_2x2_grid(img1, img2, img3, img4):
+def create_2x3_grid(img1, img2, img3, img4, img5):
     """
-    Create a 2x2 grid display from 4 images.
+    Create a 2x3 grid display from 5 images.
     
     Args:
         img1: Top-left image
-        img2: Top-right image
-        img3: Bottom-left image
-        img4: Bottom-right image
+        img2: Top-middle image
+        img3: Top-right image
+        img4: Bottom-left image
+        img5: Bottom-middle image (bottom-right will be blank)
     
     Returns:
         Combined grid image
@@ -24,19 +25,29 @@ def create_2x2_grid(img1, img2, img3, img4):
     h, w = img1.shape[:2]
     
     # Convert grayscale images to BGR if needed
-    if len(img2.shape) == 2:
-        img2 = cv2.cvtColor(img2, cv2.COLOR_GRAY2BGR)
-    if len(img3.shape) == 2:
-        img3 = cv2.cvtColor(img3, cv2.COLOR_GRAY2BGR)
+    for i, img in enumerate([img2, img3, img4, img5]):
+        if len(img.shape) == 2:
+            if i == 0:
+                img2 = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            elif i == 1:
+                img3 = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            elif i == 2:
+                img4 = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            elif i == 3:
+                img5 = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     
     # Resize all to same size
     img2 = cv2.resize(img2, (w, h))
     img3 = cv2.resize(img3, (w, h))
     img4 = cv2.resize(img4, (w, h))
+    img5 = cv2.resize(img5, (w, h))
+    
+    # Create blank image for bottom-right
+    img6 = np.zeros_like(img1)
     
     # Stack horizontally and vertically
-    top_row = np.hstack([img1, img2])
-    bottom_row = np.hstack([img3, img4])
+    top_row = np.hstack([img1, img2, img3])
+    bottom_row = np.hstack([img4, img5, img6])
     grid = np.vstack([top_row, bottom_row])
     
     return grid
@@ -140,9 +151,14 @@ def run_circle_detection(video_source=0, kernel_size=5, param2=30, min_radius=10
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
         opened = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
         
-        # Step 3: Circle Detection using Hough Transform
+        # Step 3: Canny Edge Detection
+        # Detects edges in the cleaned binary image
+        edges = cv2.Canny(opened, 50, 150)
+        
+        # Step 4: Circle Detection using Hough Transform
+        # Applied to the edge-detected image
         circles = cv2.HoughCircles(
-            opened,
+            edges,
             cv2.HOUGH_GRADIENT,
             dp=1,
             minDist=min_dist,
@@ -181,21 +197,23 @@ def run_circle_detection(video_source=0, kernel_size=5, param2=30, min_radius=10
         img1 = frame.copy()
         img2 = thresh.copy()
         img3 = opened.copy()
-        img4 = result_frame.copy()
+        img4 = edges.copy()
+        img5 = result_frame.copy()
         
-        # Add labels to each quadrant
+        # Add labels to each image
         add_label(img1, "1. Original", 'top')
         add_label(img2, "2. OTSU Threshold", 'top')
         add_label(img3, f"3. Morph Open (K={kernel_size})", 'top')
-        add_label(img4, f"4. Circles Detected: {circle_count}", 'top')
+        add_label(img4, "4. Canny Edges", 'top')
+        add_label(img5, f"5. Detected: {circle_count} circles", 'top')
         
         # Add parameters info to result frame
         param_text = f"Threshold: {param2} | MinDist: {min_dist} | Radius: {min_radius}-{max_radius}"
-        cv2.putText(img4, param_text, (10, img4.shape[0] - 15),
+        cv2.putText(img5, param_text, (10, img5.shape[0] - 15),
                    cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
         
-        # Create 2x2 grid
-        grid = create_2x2_grid(img1, img2, img3, img4)
+        # Create 2x3 grid
+        grid = create_2x3_grid(img1, img2, img3, img4, img5)
         
         # Add overall info
         info_text = f"FPS: {fps:.1f} | Frame: {frame_count}"

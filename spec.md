@@ -353,6 +353,7 @@ Demonstrate a complete image processing pipeline: from raw input through noise r
 - **Key Functions**: 
   - cv2.threshold() with THRESH_OTSU for automatic thresholding
   - cv2.morphologyEx() with MORPH_OPEN for noise removal
+  - cv2.Canny() for edge detection
   - cv2.HoughCircles() for circle detection
 - **Input**: Webcam feed
 
@@ -398,22 +399,34 @@ Demonstrate a complete image processing pipeline: from raw input through noise r
    - Compare: thresholded (noisy) vs. opened (clean)
    - Students can see the small specs disappear
 
-5. **Step 3: Circle Detection (2 minutes)**
-   - Apply HoughCircles to the cleaned binary image
+5. **Step 3: Canny Edge Detection (1-2 minutes)**
+   - Apply Canny edge detector to find edges in the cleaned image
+   - **Explain Canny:**
+     - Finds strong edges (boundaries) in the image
+     - Uses gradient analysis to locate edges
+     - Produces thin, clean edge lines
+     - Essential for precise circle detection
+   - Show the edge-detected result
+   - Point out how only the important boundaries remain
+   - Discuss: "Edges = where brightness changes rapidly"
+
+6. **Step 4: Circle Detection (1-2 minutes)**
+   - Apply HoughCircles to the edge-detected image
    - **Explain Hough Transform:**
-     - Finds circular patterns in the image
+     - Finds circular patterns in the edges
      - Parameters: min/max radius, sensitivity
      - Returns center (x, y) and radius for each circle
    - Draw detected circles on the original color frame
    - Show circles with green outlines and center dots
    - Add text showing number of circles found
 
-6. **Live Multi-View Display (1-2 minutes)**
-   - Show all stages simultaneously in a 2x2 grid:
+7. **Live Multi-View Display (1-2 minutes)**
+   - Show all stages simultaneously in a 2x3 grid:
      - Top-left: Original webcam feed
-     - Top-right: Thresholded binary image
-     - Bottom-left: After morphological opening
-     - Bottom-right: Original with detected circles overlaid
+     - Top-middle: Thresholded binary image
+     - Top-right: After morphological opening
+     - Bottom-left: Canny edge detection
+     - Bottom-middle: Original with detected circles overlaid
    - Move circular objects in and out of frame
    - Show how circles are detected in real-time
    - Demonstrate: covers/uncovers circles, changes positions
@@ -423,7 +436,7 @@ Demonstrate a complete image processing pipeline: from raw input through noise r
 1. **Image Processing Pipeline**
    - Computer vision often needs multiple steps
    - Each step solves a specific problem
-   - Pipeline: Input → Preprocessing → Feature Detection → Output
+   - Pipeline: Input → Preprocessing → Edge Detection → Feature Detection → Output
    - Preprocessing quality directly affects detection accuracy
 
 2. **Thresholding Concepts**
@@ -438,13 +451,19 @@ Demonstrate a complete image processing pipeline: from raw input through noise r
    - Like a smart filter that knows what to remove
    - Essential preprocessing step in many CV applications
 
-4. **Hough Circle Transform**
+4. **Edge Detection (Canny)**
+   - Identifies boundaries where brightness changes
+   - Canny algorithm finds optimal edges
+   - Produces thin, precise edge lines
+   - Critical for accurate geometric shape detection
+
+5. **Hough Circle Transform**
    - Specialized algorithm for finding circles
    - Works by "voting" for possible circle centers
    - Parameters control sensitivity vs. false positives
    - Can detect multiple circles simultaneously
 
-5. **Visualization for Understanding**
+6. **Visualization for Understanding**
    - Showing intermediate steps is crucial for learning
    - Each window reveals what happens inside the algorithm
    - Helps debug when things don't work
@@ -460,6 +479,7 @@ Demonstrate a complete image processing pipeline: from raw input through noise r
 2. **What happens if we skip steps?**
    - Skip thresholding: detection on grayscale is less reliable
    - Skip morphology: noise causes false detections
+   - Skip edge detection: detection is less precise
    - Show by temporarily disabling each step
 
 3. **What other shapes could we detect?**
@@ -497,8 +517,11 @@ while True:
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
     opened = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
     
-    # Step 3: Detect circles
-    circles = cv2.HoughCircles(opened, cv2.HOUGH_GRADIENT,
+    # Step 3: Canny edge detection
+    edges = cv2.Canny(opened, 50, 150)
+    
+    # Step 4: Detect circles
+    circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT,
                                dp=1, minDist=50,
                                param1=50, param2=30,
                                minRadius=10, maxRadius=100)
@@ -509,10 +532,11 @@ while True:
             cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
             cv2.circle(frame, (x, y), 2, (0, 0, 255), 3)
     
-    # Create 2x2 grid display
-    top_row = np.hstack([frame, cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)])
-    bottom_row = np.hstack([cv2.cvtColor(opened, cv2.COLOR_GRAY2BGR), 
-                            frame_with_circles])
+    # Create 2x3 grid display
+    top_row = np.hstack([frame, cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR),
+                         cv2.cvtColor(opened, cv2.COLOR_GRAY2BGR)])
+    bottom_row = np.hstack([cv2.cvtColor(edges, cv2.COLOR_GRAY2BGR),
+                            frame_with_circles, blank])
     display = np.vstack([top_row, bottom_row])
     
     # Show result

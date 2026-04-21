@@ -1,13 +1,14 @@
 # Demo 4 - Circle Detection with Image Preprocessing
 
-This demo demonstrates a complete computer vision pipeline: preprocessing raw images, removing noise, and detecting circular shapes using OpenCV's Hough Circle Transform.
+This demo demonstrates a complete computer vision pipeline: preprocessing raw images, removing noise, detecting edges, and finding circular shapes using OpenCV's Hough Circle Transform.
 
 ## Features
 
 - **OTSU Thresholding** - Automatic binary conversion
 - **Morphological Opening** - Noise removal while preserving shapes
+- **Canny Edge Detection** - Precise edge extraction
 - **Hough Circle Detection** - Find circles of various sizes
-- **Multi-View Display** - See all processing steps simultaneously in 2x2 grid
+- **Multi-View Display** - See all processing steps simultaneously in 2x3 grid
 - **Interactive Controls** - Adjust parameters in real-time
 - **Real-time Processing** - Live webcam feed
 
@@ -76,36 +77,42 @@ python circle_detection.py --threshold 20
 
 ## Understanding the Display
 
-The application shows 4 views simultaneously:
+The application shows 5 views simultaneously in a 2x3 grid:
 
 ```
-┌─────────────────┬─────────────────┐
-│  1. Original    │  2. OTSU        │
-│  (Webcam feed)  │  (Threshold)    │
-├─────────────────┼─────────────────┤
-│  3. Morph Open  │  4. Detected    │
-│  (Noise remove) │  (With circles) │
-└─────────────────┴─────────────────┘
+┌───────────────────────┬───────────────────────┬───────────────────────┐
+│  1. Original        │  2. OTSU           │  3. Morph Open     │
+│  (Webcam feed)      │  (Threshold)       │  (Noise removal)   │
+├───────────────────────┼───────────────────────┼───────────────────────┤
+│  4. Canny Edges     │  5. Detected       │  (Blank)           │
+│  (Edge detection)   │  (With circles)    │                   │
+└───────────────────────┴───────────────────────┴───────────────────────┘
 ```
 
-### Quadrant 1: Original
+### Panel 1: Original
 - Raw webcam feed
 - What the camera actually sees
 - Color image as captured
 
-### Quadrant 2: OTSU Threshold
+### Panel 2: OTSU Threshold
 - Binary image (black and white only)
 - OTSU algorithm automatically finds optimal threshold
 - Separates foreground (objects) from background
 - White = potential objects, Black = background
 
-### Quadrant 3: Morphological Opening
+### Panel 3: Morphological Opening
 - Result after noise removal
 - Small white specs are removed
 - Larger shapes (circles) are preserved
 - Cleaner than the thresholded image
 
-### Quadrant 4: Detected Circles
+### Panel 4: Canny Edges
+- Edge-detected image
+- Shows only the boundaries of objects
+- Thin, precise edge lines
+- White edges on black background
+
+### Panel 5: Detected Circles
 - Original image with detected circles overlaid
 - Green circles outline detected objects
 - Red dots mark centers
@@ -117,7 +124,7 @@ The application shows 4 views simultaneously:
 ### The Processing Pipeline
 
 ```
-Raw Image → Grayscale → OTSU Threshold → Morphological Opening → Circle Detection
+Raw Image → Grayscale → OTSU Threshold → Morphological Opening → Canny Edges → Circle Detection
 ```
 
 **Step-by-step:**
@@ -149,15 +156,24 @@ Raw Image → Grayscale → OTSU Threshold → Morphological Opening → Circle 
    - Preserves larger shapes
    - Elliptical kernel works well for circular objects
 
-4. **Hough Circle Detection**
+4. **Canny Edge Detection**
    ```python
-   circles = cv2.HoughCircles(opened, cv2.HOUGH_GRADIENT,
+   edges = cv2.Canny(opened, 50, 150)
+   ```
+   - Detects edges (boundaries) in the image
+   - Uses gradient analysis to find strong edges
+   - Produces thin, clean edge lines
+   - Threshold values (50, 150) control sensitivity
+
+5. **Hough Circle Detection**
+   ```python
+   circles = cv2.HoughCircles(edges, cv2.HOUGH_GRADIENT,
                               dp=1, minDist=50,
                               param1=50, param2=30,
                               minRadius=10, maxRadius=100)
    ```
    - Specialized algorithm for finding circles
-   - Uses "voting" mechanism
+   - Uses "voting" mechanism on edge pixels
    - Returns center (x, y) and radius for each circle
    - Parameters control sensitivity and size range
 
@@ -191,6 +207,7 @@ Computer vision tasks often require multiple preprocessing steps. Each step solv
 Try disabling steps to see the difference:
 - Without thresholding: Detection is less reliable
 - Without morphology: Noise causes false detections
+- Without edge detection: Detection is less precise
 - Together: Clean, accurate results
 
 ### 3. OTSU Thresholding
@@ -210,6 +227,12 @@ Try disabling steps to see the difference:
 - Each edge point "votes" for possible circles
 - Circles with most votes are detected
 - Robust to noise and partial occlusion
+
+### 6. Canny Edge Detection
+- Finds edges by analyzing brightness gradients
+- Multi-stage algorithm with optimal edge detection
+- Produces single-pixel-wide edges
+- Essential for precise geometric shape detection
 
 ## Tips for Best Results
 
