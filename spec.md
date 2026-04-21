@@ -2,9 +2,11 @@
 
 I want to create a 45 minutes, demo-centric class for secondary school students about computer vision. They are IT related students so source code (mainly Python and C#) is important for them.
 
-# Areas covered
+Preparation:
+- Take a paper with a circle on it (for demo 4)
+- Create an initial training dataset for demo 2 just in case...
 
-Additional ideas: social media effects: kaleidoscope (teach coordinate geometry), hopponálás; cc zaj th morph, és watershet
+# Areas covered
 
 ## Priority-Ordered Topics
 
