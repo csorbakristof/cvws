@@ -342,3 +342,246 @@ Show the creative and fun side of computer vision. Demonstrate how pixel manipul
 - Artistic visualization tools
 - VR/AR distortion correction (opposite direction)
 
+## Demo 4 - circle detection with image preprocessing
+
+### Objective
+Demonstrate a complete image processing pipeline: from raw input through noise removal to feature detection. Show how preprocessing steps (thresholding, morphology) improve detection quality. Teach the importance of each processing stage by visualizing intermediate results.
+
+### Technology Stack
+- **Language**: Python (best for image processing demonstrations)
+- **Library**: OpenCV (cv2)
+- **Key Functions**: 
+  - cv2.threshold() with THRESH_OTSU for automatic thresholding
+  - cv2.morphologyEx() with MORPH_OPEN for noise removal
+  - cv2.HoughCircles() for circle detection
+- **Input**: Webcam feed
+
+### Setup Requirements
+- Webcam for live detection
+- Circular objects to detect (coins, bottle caps, circular stickers, balls)
+- Good lighting conditions (important for thresholding)
+- Plain background (helps with detection)
+
+### Demo Flow (7-9 minutes)
+
+1. **Introduction: Finding Shapes (1 minute)**
+   - "Computers can find specific shapes, not just objects"
+   - Show circular objects (coins, bottle cap, ball)
+   - "Let's teach the computer to find circles"
+   - Explain real-world use: quality control, counting objects, coin recognition
+
+2. **Show Raw Detection First (1 minute)**
+   - Run HoughCircles directly on the webcam feed (grayscale only)
+   - Show that it detects many false circles due to noise
+   - Point out the problem: too many detections, unreliable
+   - "We need to clean up the image first!"
+
+3. **Step 1: OTSU Thresholding (2 minutes)**
+   - Convert frame to grayscale
+   - Apply OTSU thresholding to create binary image (black and white only)
+   - **Explain OTSU:**
+     - Automatically finds the best threshold value
+     - Separates foreground (objects) from background
+     - Creates clean binary image
+   - Show the thresholded result in a separate window
+   - Point out how the image is now only black and white
+   - Discuss: "Threshold = separating light from dark"
+
+4. **Step 2: Morphological Opening (2 minutes)**
+   - Apply morphological "open" operation (erosion followed by dilation)
+   - **Explain morphology:**
+     - Opening = erosion + dilation
+     - Removes small white noise spots
+     - Preserves larger shapes (our circles)
+     - Like a filter that removes "salt" noise
+   - Show the noise-removed result in another window
+   - Compare: thresholded (noisy) vs. opened (clean)
+   - Students can see the small specs disappear
+
+5. **Step 3: Circle Detection (2 minutes)**
+   - Apply HoughCircles to the cleaned binary image
+   - **Explain Hough Transform:**
+     - Finds circular patterns in the image
+     - Parameters: min/max radius, sensitivity
+     - Returns center (x, y) and radius for each circle
+   - Draw detected circles on the original color frame
+   - Show circles with green outlines and center dots
+   - Add text showing number of circles found
+
+6. **Live Multi-View Display (1-2 minutes)**
+   - Show all stages simultaneously in a 2x2 grid:
+     - Top-left: Original webcam feed
+     - Top-right: Thresholded binary image
+     - Bottom-left: After morphological opening
+     - Bottom-right: Original with detected circles overlaid
+   - Move circular objects in and out of frame
+   - Show how circles are detected in real-time
+   - Demonstrate: covers/uncovers circles, changes positions
+
+### Key Teaching Points
+
+1. **Image Processing Pipeline**
+   - Computer vision often needs multiple steps
+   - Each step solves a specific problem
+   - Pipeline: Input → Preprocessing → Feature Detection → Output
+   - Preprocessing quality directly affects detection accuracy
+
+2. **Thresholding Concepts**
+   - Converts grayscale to binary (simplifies the image)
+   - OTSU method automatically finds optimal threshold
+   - Reduces 256 gray levels to just 2 (black/white)
+   - Makes shape detection easier and faster
+
+3. **Morphological Operations**
+   - Opening = erosion followed by dilation
+   - Removes noise while preserving shape
+   - Like a smart filter that knows what to remove
+   - Essential preprocessing step in many CV applications
+
+4. **Hough Circle Transform**
+   - Specialized algorithm for finding circles
+   - Works by "voting" for possible circle centers
+   - Parameters control sensitivity vs. false positives
+   - Can detect multiple circles simultaneously
+
+5. **Visualization for Understanding**
+   - Showing intermediate steps is crucial for learning
+   - Each window reveals what happens inside the algorithm
+   - Helps debug when things don't work
+   - Professional CV development uses similar visualization
+
+### Potential Discussion Questions
+
+1. **Why do we need preprocessing?**
+   - Raw images have noise, shadows, varying brightness
+   - Preprocessing makes detection more reliable
+   - Trade-off: processing time vs. accuracy
+
+2. **What happens if we skip steps?**
+   - Skip thresholding: detection on grayscale is less reliable
+   - Skip morphology: noise causes false detections
+   - Show by temporarily disabling each step
+
+3. **What other shapes could we detect?**
+   - Lines (Hough Line Transform)
+   - Rectangles (contour analysis)
+   - Arbitrary shapes (template matching)
+   - Faces (back to Demo 1!)
+
+4. **Real-world applications?**
+   - Manufacturing: quality control (checking circular parts)
+   - Medicine: detecting cells, tumors in microscopy
+   - Robotics: ball tracking for robot soccer
+   - Coin counting machines
+   - Traffic: detecting circular traffic signs
+
+### Code Structure Overview
+
+```python
+# 1. Initialize webcam
+cap = cv2.VideoCapture(0)
+
+# 2. Main loop
+while True:
+    # Read frame
+    ret, frame = cap.read()
+    
+    # Convert to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    
+    # Step 1: OTSU thresholding
+    _, thresh = cv2.threshold(gray, 0, 255, 
+                              cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    
+    # Step 2: Morphological opening (remove noise)
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    opened = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+    
+    # Step 3: Detect circles
+    circles = cv2.HoughCircles(opened, cv2.HOUGH_GRADIENT,
+                               dp=1, minDist=50,
+                               param1=50, param2=30,
+                               minRadius=10, maxRadius=100)
+    
+    # Draw circles on original frame
+    if circles is not None:
+        for (x, y, r) in circles[0]:
+            cv2.circle(frame, (x, y), r, (0, 255, 0), 2)
+            cv2.circle(frame, (x, y), 2, (0, 0, 255), 3)
+    
+    # Create 2x2 grid display
+    top_row = np.hstack([frame, cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)])
+    bottom_row = np.hstack([cv2.cvtColor(opened, cv2.COLOR_GRAY2BGR), 
+                            frame_with_circles])
+    display = np.vstack([top_row, bottom_row])
+    
+    # Show result
+    cv2.imshow('Circle Detection Pipeline', display)
+```
+
+### Technical Notes
+
+- **Lighting is critical**: Good lighting improves thresholding significantly
+- **Kernel size**: 5x5 is good for most cases; adjust based on noise level
+- **HoughCircles parameters**:
+  - `dp=1`: inverse ratio of accumulator resolution
+  - `minDist=50`: minimum distance between circle centers
+  - `param1=50`: Canny edge threshold
+  - `param2=30`: accumulator threshold (lower = more circles detected)
+  - `minRadius/maxRadius`: expected circle size range
+- **Performance**: Processing steps add computation time; optimize kernel sizes
+- **Alternative**: Can use adaptive thresholding instead of OTSU for varying lighting
+
+### Extension Ideas
+
+**For Students:**
+1. **Adjust parameters interactively** - Add trackbars for threshold, kernel size, Hough parameters
+2. **Count objects** - Display count of detected circles
+3. **Measure circles** - Show diameter/radius in pixels or real-world units
+4. **Color-based detection** - Detect only red circles, blue circles, etc.
+5. **Track circles over time** - Assign IDs and track movement
+
+**Advanced:**
+6. **Compare with other methods** - Try different thresholding (adaptive, simple)
+7. **Different shapes** - Modify to detect rectangles, triangles
+8. **Size-based filtering** - Classify circles as small/medium/large
+9. **Combine with Demo 1** - Detect circles only on detected faces (find eyes!)
+10. **Save detections** - Log circle positions and sizes to file
+
+### Troubleshooting
+
+**No circles detected:**
+- Check lighting conditions (too bright or too dark)
+- Verify circular objects are in frame
+- Reduce `param2` parameter (makes detection more sensitive)
+- Increase `maxRadius` if objects are large
+- Background might be too cluttered - use plain background
+
+**Too many false circles:**
+- Increase `param2` parameter (stricter detection)
+- Increase `minDist` (prevent overlapping detections)
+- Adjust `minRadius/maxRadius` to expected size range
+- Improve lighting or increase morphology kernel size
+
+**Thresholding doesn't work well:**
+- Try adaptive thresholding instead of OTSU
+- Adjust lighting conditions
+- Use histogram equalization before thresholding
+
+**Low FPS:**
+- Reduce frame resolution
+- Use smaller morphology kernel
+- Process every other frame instead of every frame
+- Limit search range for HoughCircles
+
+### Connection to Real Applications
+
+- **Industrial Quality Control**: Detecting defects in circular parts (bearings, gaskets, washers)
+- **Medical Imaging**: Cell counting, tumor detection in microscopy
+- **Robotics**: Ball tracking for robot soccer, autonomous navigation
+- **Coin Recognition**: Automatic coin counting and sorting machines
+- **Traffic Systems**: Detecting circular traffic signs
+- **Agriculture**: Counting fruits (oranges, apples) for harvest estimation
+- **Sports Analytics**: Ball tracking in tennis, soccer, basketball
+- **Scientific Research**: Particle detection and analysis in physics experiments
+
