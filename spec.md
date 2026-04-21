@@ -609,3 +609,300 @@ while True:
 - **Sports Analytics**: Ball tracking in tennis, soccer, basketball
 - **Scientific Research**: Particle detection and analysis in physics experiments
 
+## Demo 5 - motion detection with MOG2
+
+### Objective
+Demonstrate how computers can automatically detect moving objects in video by learning what the "background" looks like and identifying anything that changes. Show real-time motion detection for surveillance and monitoring applications.
+
+### Technology Stack
+- **Language**: C# (.NET 6+)
+- **Library**: OpenCvSharp4 (OpenCV wrapper for C#)
+- **Algorithm**: BackgroundSubtractorMOG2 (Mixture of Gaussians 2)
+- **Key Functions**: 
+  - BackgroundSubtractorMOG2.Apply() for foreground/background separation
+  - cv2.MorphologyEx() for noise removal
+  - cv2.FindContours() for detecting moving object boundaries
+  - cv2.BoundingRect() for drawing boxes around motion
+- **Input**: Webcam feed
+
+### Setup Requirements
+- Webcam for live motion detection
+- Relatively static background (desk, wall, classroom)
+- Good lighting conditions
+- Objects to move in front of camera (hand, book, pen, person walking)
+- Backup: pre-recorded video with motion (hallway footage, parking lot, etc.)
+
+### Demo Flow (7-9 minutes)
+
+1. **Introduction: What is Motion Detection? (1 minute)**
+   - "How do security cameras know when something moves?"
+   - "Computer learns what the background looks like"
+   - "Anything different = motion detected!"
+   - Real-world applications: security systems, automatic doors, traffic monitoring
+
+2. **Show the Concept (1 minute)**
+   - Start with static webcam view (no motion)
+   - Move hand into frame - explain what should happen
+   - "Computer will highlight anything that moves"
+   - Discuss: background vs. foreground
+
+3. **Background Modeling (2 minutes)**
+   - **Explain MOG2:**
+     - "MOG = Mixture of Gaussians"
+     - Algorithm learns the background over time
+     - Each pixel remembers its typical colors/brightness
+     - Adapts to slow changes (lighting, shadows)
+     - Fast changes = detected as motion
+   - Show the background model being built
+   - First few frames: everything is "motion" (no background yet)
+   - After ~2 seconds: background learned, only real motion detected
+
+4. **Foreground Mask (2 minutes)**
+   - Show the binary mask output
+     - White = motion detected (foreground)
+     - Black = no motion (background)
+   - Move objects at different speeds
+   - Point out: faster motion = easier detection
+   - Demonstrate shadow handling (MOG2 can detect shadows separately)
+
+5. **Noise Removal and Refinement (1-2 minutes)**
+   - Show raw mask (has noise, small specks)
+   - Apply morphological operations:
+     - Opening: removes small white noise
+     - Closing: fills holes in detected objects
+   - Show cleaned mask vs. raw mask side-by-side
+   - Much cleaner motion detection
+
+6. **Bounding Boxes and Tracking (1-2 minutes)**
+   - Find contours in the cleaned mask
+   - Draw bounding boxes around each moving object
+   - Display count of detected moving objects
+   - Show labels/IDs for each object
+   - Demonstrate with multiple moving objects
+
+7. **Live Multi-View Display (1 minute)**
+   - Show all stages simultaneously in a 2x2 grid:
+     - Top-left: Original webcam feed
+     - Top-right: Background model (learned background)
+     - Bottom-left: Foreground mask (motion detected)
+     - Bottom-right: Original with bounding boxes
+   - Move around, show real-time detection
+   - Discuss how quickly the background adapts
+
+### Key Teaching Points
+
+1. **Background Subtraction Concept**
+   - Motion detection = comparing current frame to background model
+   - Background model is learned, not fixed
+   - Adaptive: handles lighting changes, moving branches, etc.
+   - Core principle: Background changes slowly, foreground changes quickly
+
+2. **Mixture of Gaussians (MOG2)**
+   - Each pixel modeled as mixture of Gaussian distributions
+   - Handles complex backgrounds (waving trees, water, reflections)
+   - Automatically adapts learning rate
+   - Shadow detection capability (optional feature)
+   - More sophisticated than simple frame differencing
+
+3. **Foreground/Background Separation**
+   - Foreground = moving objects (people, vehicles, animals)
+   - Background = static scene (walls, furniture, ground)
+   - Binary mask output simplifies detection
+   - Threshold determines sensitivity
+
+4. **Noise Handling**
+   - Raw motion detection has noise (sensor noise, compression artifacts)
+   - Morphological operations clean up the mask
+   - Opening removes small false positives
+   - Closing fills gaps in real objects
+   - Balance between noise removal and detail preservation
+
+5. **Contour Detection and Tracking**
+   - Contours = boundaries of detected regions
+   - Bounding boxes simplify object representation
+   - Can filter by size (ignore tiny motions)
+   - Foundation for object tracking across frames
+   - Can count objects entering/exiting scene
+
+6. **Real-time Adaptation**
+   - Background model updates continuously
+   - Handles gradual lighting changes (sun moving, clouds)
+   - Objects that stop moving become part of background
+   - Learning rate controls adaptation speed
+
+### Potential Discussion Questions
+
+1. **Why not just compare two consecutive frames?**
+   - Simple frame differencing detects edges of motion, not entire object
+   - Doesn't handle camera shake or lighting changes
+   - MOG2 builds robust background model over time
+   - More reliable for stationary cameras
+
+2. **What happens if the background changes?**
+   - MOG2 adapts automatically (that's the key feature!)
+   - Someone parks a car → car becomes background after a few seconds
+   - Lights turned on/off → algorithm adapts to new lighting
+   - Learning rate parameter controls adaptation speed
+
+3. **Why is motion detection useful?**
+   - Security: detect intruders, monitor restricted areas
+   - Automation: automatic doors, lighting, parking sensors
+   - Analytics: count people entering/exiting, traffic flow
+   - Efficiency: only process frames with motion (save power/bandwidth)
+   - Alerts: notify when unexpected motion detected
+
+4. **What are the limitations?**
+   - Requires relatively static camera (not for moving vehicles)
+   - Struggles with very crowded scenes
+   - Shadows can be detected as motion (unless shadow detection enabled)
+   - Very slow motion might not be detected
+   - Lighting changes can cause false positives initially
+
+5. **How is this different from object detection (Demo 2)?**
+   - Motion detection: "Is something moving?" (doesn't identify what)
+   - Object detection: "What is this object?" (identifies specific things)
+   - Motion detection is faster and simpler
+   - Object detection is more informative but slower
+   - Often combined: detect motion first, then classify objects
+
+### Code Structure Overview
+
+```csharp
+// 1. Initialize webcam and MOG2
+VideoCapture capture = new VideoCapture(0);
+BackgroundSubtractorMOG2 mog2 = BackgroundSubtractorMOG2.Create(
+    history: 500,           // Number of frames to use for background model
+    varThreshold: 16,       // Threshold for classifying as foreground
+    detectShadows: true     // Enable shadow detection
+);
+
+// 2. Main loop
+while (true)
+{
+    // Read frame
+    Mat frame = new Mat();
+    capture.Read(frame);
+    
+    // Apply MOG2 to get foreground mask
+    Mat fgMask = new Mat();
+    mog2.Apply(frame, fgMask);
+    
+    // Remove noise with morphological operations
+    Mat kernel = Cv2.GetStructuringElement(
+        MorphShapes.Ellipse, new Size(5, 5));
+    Cv2.MorphologyEx(fgMask, fgMask, MorphTypes.Open, kernel);
+    Cv2.MorphologyEx(fgMask, fgMask, MorphTypes.Close, kernel);
+    
+    // Find contours (boundaries of moving objects)
+    Point[][] contours;
+    HierarchyIndex[] hierarchy;
+    Cv2.FindContours(fgMask, out contours, out hierarchy,
+                     RetrievalModes.External, 
+                     ContourApproximationModes.ApproxSimple);
+    
+    // Draw bounding boxes around motion
+    Mat result = frame.Clone();
+    foreach (var contour in contours)
+    {
+        double area = Cv2.ContourArea(contour);
+        if (area > 500) // Filter small noise
+        {
+            Rect bbox = Cv2.BoundingRect(contour);
+            Cv2.Rectangle(result, bbox, new Scalar(0, 255, 0), 2);
+        }
+    }
+    
+    // Get background model
+    Mat background = new Mat();
+    mog2.GetBackgroundImage(background);
+    
+    // Display all views in grid
+    Mat grid = CreateGrid(frame, background, fgMask, result);
+    Cv2.ImShow("Motion Detection", grid);
+    
+    if (Cv2.WaitKey(30) == 27) break; // ESC to exit
+}
+```
+
+### Technical Notes
+
+- **MOG2 Parameters**:
+  - `history`: Number of recent frames to consider (default 500)
+  - `varThreshold`: Lower = more sensitive, detects smaller motions
+  - `detectShadows`: If true, shadows are gray (127) instead of white (255)
+- **Learning Rate**: Can manually set with Apply(frame, fgMask, learningRate)
+  - -1 = automatic (default, recommended)
+  - 0 = no learning (static background)
+  - 0.001-0.01 = slow adaptation
+  - 0.1 = fast adaptation
+- **Shadow Detection**: MOG2 can distinguish shadows from real motion
+  - Shadows appear as gray (value 127) in mask
+  - Can be removed or kept depending on application
+- **Contour Filtering**: Filter by area to ignore tiny motions
+  - Minimum area prevents noise from triggering detection
+  - Maximum area can ignore large global changes
+- **Performance**: MOG2 is computationally efficient
+  - Real-time on most modern hardware
+  - Can process multiple camera feeds simultaneously
+- **Initialization Period**: First ~2 seconds builds background model
+  - Scene should be relatively static during initialization
+  - Can pre-load background model from file for instant detection
+
+### Extension Ideas
+
+**For Students:**
+1. **Count objects crossing a line** - Draw virtual line, count crossings
+2. **Motion history** - Show trail/path of motion over time
+3. **Adjustable sensitivity** - Trackbar for variance threshold
+4. **Zone monitoring** - Define regions of interest, alert if motion in zone
+5. **Motion heatmap** - Accumulate motion over time, show hotspots
+
+**Advanced:**
+6. **Object tracking** - Assign IDs to objects, track across frames
+7. **Direction detection** - Determine if objects moving left/right/up/down
+8. **Speed estimation** - Calculate object velocity
+9. **Multi-camera system** - Combine multiple camera feeds
+10. **Recording on motion** - Save video only when motion detected (save storage)
+
+### Troubleshooting
+
+**Everything detected as motion:**
+- Background model not initialized yet (wait 2-3 seconds)
+- Camera is moving or shaking (MOG2 needs stable camera)
+- Too much lighting variation (adjust varThreshold or history)
+
+**Motion not detected:**
+- Object moving too slowly (increase sensitivity with lower varThreshold)
+- Object color similar to background
+- Motion area too small (check contour area filtering)
+- Increase learning rate if background recently changed
+
+**Too much noise/false detections:**
+- Increase morphological kernel size
+- Increase contour area threshold
+- Decrease learning rate (make background more stable)
+- Enable shadow detection to filter out shadows
+
+**Shadows detected as motion:**
+- Enable shadow detection in MOG2 constructor
+- Filter out gray pixels (value 127) from mask
+- Improve lighting conditions to reduce sharp shadows
+
+**Background doesn't update:**
+- Check learning rate (should be -1 for automatic)
+- Verify MOG2.Apply() is called every frame
+- Object might be stationary for too long (becomes part of background)
+
+### Connection to Real Applications
+
+- **Security and Surveillance**: Detect intruders, monitor restricted zones, automatic alerts
+- **Smart Buildings**: Automatic lighting control, occupancy detection, energy saving
+- **Retail Analytics**: Count customers entering/exiting, dwell time analysis, heat maps
+- **Traffic Monitoring**: Vehicle counting, congestion detection, accident detection
+- **Parking Systems**: Detect available parking spots, enforce parking rules
+- **Wildlife Monitoring**: Camera traps for animal detection, conservation research
+- **Industrial Safety**: Detect unauthorized access to dangerous areas, equipment monitoring
+- **Healthcare**: Fall detection for elderly care, patient monitoring
+- **Sports Analytics**: Player movement analysis, automatic camera following
+- **Home Automation**: Smart doorbells, security systems, pet detection
+
