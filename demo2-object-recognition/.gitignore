@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Training data (can be large)
+data/positive/*.jpg
+data/positive/*.png
+data/negative/*.jpg
+data/negative/*.png
+
+# Keep the README files
+!data/README.md
+!data/**/README.md
+
+# Trained models (can be large)
+models/*.pkl
+models/*.h5
+models/*.pt
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

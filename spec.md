@@ -4,7 +4,7 @@ I want to create a 45 minutes, demo-centric class for secondary school students 
 
 # Areas covered
 
-Additional ideas: social media effects: kaleidoscope, hopponálás; cc zaj th morph, és watershet
+Additional ideas: social media effects: kaleidoscope (teach coordinate geometry), hopponálás; cc zaj th morph, és watershet
 
 ## Priority-Ordered Topics
 
