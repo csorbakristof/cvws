@@ -1,3 +1,6 @@
 /demo1-face-detection/haarcascade_frontalface_default.xml
 bin/*
 obj/*
+/demo5-motion-detection/bin/*
+/demo5-motion-detection/obj/*
+/demo1-face-detection/haarcascade_frontalface_default.xml
